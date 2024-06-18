@@ -23,7 +23,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::group([
 
     'middleware' => 'api',
-    'prefix' => 'auth'
+    'prefix' => 'v1'
 
 ], function ($router) {
     Route::post('adminlogin', [AdminController::class,'adminlogin'])->name('adminlogin');

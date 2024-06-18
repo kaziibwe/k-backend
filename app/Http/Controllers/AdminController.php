@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use auth;
 use App\Models\Admin;
+use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AdminController extends Controller
 {
@@ -13,19 +15,52 @@ class AdminController extends Controller
     public function _construct() {
         $this->middleware('auth:admin-api',['except'=>['adminlogin','adminregister']]);
    }
+
     public function adminregister(Request $request){
-        $admin=Admin::create([
-            'name'=>$request->name,
-            'email'=>$request->email,
-            'password'=>Hash::make($request->password),
-        ]);
+
+        try {
+
+
+           $createAdmin = $request->validate([
+            'name'=>'required',
+            'email' => ['required', 'email', Rule::unique('admins', 'email')],
+            'location'=>'required',
+            'phone'=>'required',
+            'password'=>'required',
+           ]);
+
+           if ($request->hasFile('image')) {
+            $formFields['image'] = $request->file('image')->store('images', 'public');
+        }
+        // Hash password
+        $formFields['password'] = bcrypt($formFields['password']);
+        
+        $admin=Admin::create($createAdmin);
 
         if($admin){
-            return response()->json([$admin,'status'=>true],200);
+            return response()->json(["Admin"=>$admin,'status'=>true],200);
         }else{
-            return response()->json(['status'=>false],200);
+            return response()->json(['status'=>false],500);
         }
-    }
+
+
+} catch (ValidationException $e) {
+    // Return JSON response with validation errors
+    return response()->json([
+        'errors' => $e->errors(), // Detailed validation errors
+    ], 422);
+} catch (\Exception $e) {
+    // Catch any other exceptions and return a generic error response
+    return response()->json([
+        'error' => $e->getMessage(), // Detailed error message
+    ], 500);
+}
+
+}
+
+
+
+
 
     public function adminlogin(Request $request){
             $credentials = request(['email', 'password']);
